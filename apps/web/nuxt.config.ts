@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     public: {
       productApiBaseUrl: process.env.PRODUCT_API_BASE_URL || "http://localhost:7012",
       transactionApiBaseUrl: process.env.TRANSACTION_API_BASE_URL || "http://localhost:7013",
+      userApiBaseUrl: process.env.USER_API_BASE_URL || "http://localhost:7014",
       keycloakBaseUrl: process.env.KEYCLOAK_BASE_URL || "http://localhost:7070",
       keycloakRealm: process.env.KEYCLOAK_REALM || "demo-realm",
       keycloakClientId: process.env.KEYCLOAK_CLIENT_ID || "nuxt-app",

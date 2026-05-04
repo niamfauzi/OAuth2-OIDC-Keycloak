@@ -1,18 +1,34 @@
 <script setup lang="ts">
+import { decodeJwt } from "./utils/decode-jwt"
+
 const route = useRoute()
+const config = useRuntimeConfig()
 const accessToken = useCookie<string | null>("access_token", {
   sameSite: "lax",
   secure: false,
   default: () => null
 })
 
-const navItems = [
-  { label: "Profile", to: "/profile" },
-  { label: "Products", to: "/products" },
-  { label: "Order / Transaksi", to: "/transactions" }
-]
-
 const isLoggedIn = computed(() => Boolean(accessToken.value))
+const profile = computed(() => accessToken.value ? decodeJwt(accessToken.value) : null)
+const isAdmin = computed(() => {
+  const roles = profile.value?.realm_access?.roles
+
+  return Array.isArray(roles) && roles.includes("app_admin")
+})
+const navItems = computed(() => {
+  const items = [
+    { label: "Profile", to: "/profile" },
+    { label: "Products", to: "/products" },
+    { label: "Order / Transaksi", to: "/transactions" }
+  ]
+
+  if (isAdmin.value) {
+    items.push({ label: "Users", to: "/users" })
+  }
+
+  return items
+})
 
 function isActiveRoute(path: string) {
   return route.path === path
@@ -20,7 +36,15 @@ function isActiveRoute(path: string) {
 
 async function logout() {
   accessToken.value = null
-  await navigateTo("/login", { replace: true })
+
+  const logoutUrl = new URL(
+    `/realms/${config.public.keycloakRealm}/protocol/openid-connect/logout`,
+    config.public.keycloakBaseUrl
+  )
+  logoutUrl.searchParams.set("client_id", config.public.keycloakClientId)
+  logoutUrl.searchParams.set("post_logout_redirect_uri", window.location.origin + "/login")
+
+  window.location.href = logoutUrl.toString()
 }
 </script>
 

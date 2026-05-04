@@ -10,16 +10,17 @@ Route yang tersedia pada tahap ini:
 - `GET /profile`
 - `GET /products`
 - `GET /transactions`
+- `GET /users`
 
 ## Menjalankan App
 
-1. Pastikan file root `.env` sudah ada dan berisi `PRODUCT_API_BASE_URL`, `TRANSACTION_API_BASE_URL`, `KEYCLOAK_BASE_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, dan `KEYCLOAK_REDIRECT_URI`.
+1. Pastikan file root `.env` sudah ada dan berisi `PRODUCT_API_BASE_URL`, `TRANSACTION_API_BASE_URL`, `USER_API_BASE_URL`, `KEYCLOAK_BASE_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, dan `KEYCLOAK_REDIRECT_URI`.
 2. Masuk ke folder `apps/web`.
 3. Jalankan `npm install`.
 4. Jalankan `npm run dev`.
 5. Buka `http://localhost:7011/login`.
 
-Nuxt akan membaca env `PRODUCT_API_BASE_URL`, `TRANSACTION_API_BASE_URL`, dan `KEYCLOAK_*` yang sama langsung dari root `.env`.
+Nuxt akan membaca env `PRODUCT_API_BASE_URL`, `TRANSACTION_API_BASE_URL`, `USER_API_BASE_URL`, dan `KEYCLOAK_*` yang sama langsung dari root `.env`.
 
 ## Flow Manual Test
 
@@ -35,7 +36,11 @@ Nuxt akan membaca env `PRODUCT_API_BASE_URL`, `TRANSACTION_API_BASE_URL`, dan `K
 10. Klik `Order / Transaksi` dan pastikan masuk ke `/transactions`, lalu list transaction bisa dimuat dari Transaction API.
 11. Isi form transaction dengan `product_id` valid lalu submit dan pastikan transaction baru muncul di list.
 12. Pastikan hasil submit menampilkan `created_by`.
-13. Hapus cookie `access_token`, refresh halaman, dan pastikan menu global tidak tampil.
+13. Login dengan user yang punya realm role `app_admin`, lalu pastikan menu `Users` tampil.
+14. Klik `Users` dan pastikan list user bisa dimuat dari User Management API.
+15. Isi form create user dan pastikan user baru muncul di list.
+16. Pilih user dari list, update data, lalu pastikan perubahan muncul.
+17. Hapus cookie `access_token`, refresh halaman, dan pastikan menu global tidak tampil.
 
 ## Negative Check
 
@@ -44,3 +49,5 @@ Nuxt akan membaca env `PRODUCT_API_BASE_URL`, `TRANSACTION_API_BASE_URL`, dan `K
 3. Ubah cookie `access_token` menjadi token rusak dan pastikan `/profile` menampilkan `Token tidak valid.`
 4. Buka `/products` tanpa cookie token dan pastikan tampil `unauthorized`.
 5. Buka `/transactions` tanpa cookie token dan pastikan tampil `unauthorized`.
+6. Buka `/users` tanpa cookie token dan pastikan tampil `unauthorized`.
+7. Buka `/users` dengan token valid tanpa role `app_admin` dan pastikan tampil `forbidden`.
