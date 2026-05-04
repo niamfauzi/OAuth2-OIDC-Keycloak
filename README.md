@@ -5,6 +5,7 @@ Project ini adalah project belajar OAuth2/OIDC yang sengaja dibuat sederhana aga
 - `apps/web`: Nuxt 3
 - `apps/product-api`: Bun + Elysia
 - `apps/transaction-api`: Go
+- `apps/user-api`: Bun + Elysia untuk User Management API mulai Tahap 11
 - `keycloak`: OIDC provider lokal
 - `postgres`: database aplikasi
 
@@ -15,7 +16,8 @@ Project ini adalah project belajar OAuth2/OIDC yang sengaja dibuat sederhana aga
 ├── apps/
 │   ├── web/
 │   ├── product-api/
-│   └── transaction-api/
+│   ├── transaction-api/
+│   └── user-api/            # mulai Tahap 11
 ├── infra/
 │   ├── docker/
 │   └── keycloak/
@@ -42,6 +44,7 @@ Project ini adalah project belajar OAuth2/OIDC yang sengaja dibuat sederhana aga
 | `web` | Nuxt frontend placeholder | `7011` |
 | `product-api` | API product placeholder | `7012` |
 | `transaction-api` | API transaction placeholder | `7013` |
+| `user-api` | API admin user management mulai Tahap 11 | `7014` |
 | `keycloak` | OIDC provider lokal | `7070` |
 | `postgres` | Database aplikasi | `5432` |
 
@@ -54,12 +57,25 @@ Project ini adalah project belajar OAuth2/OIDC yang sengaja dibuat sederhana aga
 | `web` | `GET` | `/profile` |
 | `web` | `GET` | `/products` |
 | `web` | `GET` | `/transactions` |
+| `web` | `GET` | `/users` mulai Tahap 11 |
 | `product-api` | `GET` | `/health` |
 | `product-api` | `GET` | `/products` |
 | `product-api` | `POST` | `/products` |
 | `transaction-api` | `GET` | `/health` |
 | `transaction-api` | `GET` | `/transactions` |
 | `transaction-api` | `POST` | `/transactions` |
+| `user-api` | `GET` | `/health` mulai Tahap 11 |
+| `user-api` | `GET` | `/users` mulai Tahap 11 |
+| `user-api` | `POST` | `/users` mulai Tahap 11 |
+| `user-api` | `PUT` | `/users/:id` mulai Tahap 11 |
+
+Mapping API dari Nuxt:
+
+```text
+/products      -> http://localhost:7012/products
+/transactions  -> http://localhost:7013/transactions
+/users         -> http://localhost:7014/users
+```
 
 ## Daily Use
 
@@ -95,6 +111,7 @@ make migrate
 ```bash
 make run-product
 make run-transaction
+make run-user
 make run-web
 ```
 
@@ -107,8 +124,10 @@ Command yang paling sering dipakai:
 - `make db-shell`: buka `psql` ke database lokal
 - `make run-product`: jalankan Product API
 - `make run-transaction`: jalankan Transaction API
+- `make run-user`: jalankan User Management API
 - `make run-web`: jalankan Nuxt app
 - `make install-product`: install dependency Product API
+- `make install-user`: install dependency User Management API
 - `make install-web`: install dependency Web app
 
 Contoh urutan untuk development harian:
@@ -118,5 +137,6 @@ make infra-up
 make migrate
 make run-product
 make run-transaction
+make run-user
 make run-web
 ```

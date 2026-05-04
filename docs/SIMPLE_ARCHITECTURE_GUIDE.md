@@ -30,12 +30,36 @@ Stack tetap:
 - **Backend API 2**: Go untuk **transaksi**
 - **Database**: PostgreSQL
 
+Tambahan mulai **Tahap 11**:
+
+- **User Management API**: Bun + Elysia, backend kecil khusus untuk **admin user management** melalui Keycloak Admin API
+
 Arsitektur yang dipakai adalah:
 
 - **1 frontend**
 - **1 auth server**
-- **2 backend API sederhana**
+- **2 backend API bisnis sederhana**
+- **1 backend admin sederhana mulai Tahap 11**
 - **1 PostgreSQL**
+
+Port local development yang dipakai:
+
+| Service | Port | Catatan |
+| --- | --- | --- |
+| Nuxt web app | `7011` | frontend |
+| Product API | `7012` | Bun + Elysia untuk product |
+| Transaction API | `7013` | Go untuk transaksi |
+| User Management API | `7014` | Bun + Elysia untuk admin user management mulai Tahap 11 |
+| Keycloak | `7070` | OIDC provider |
+| PostgreSQL | `5432` | database aplikasi |
+
+Contoh mapping request dari frontend:
+
+```text
+Nuxt /products      -> http://localhost:7012/products
+Nuxt /transactions  -> http://localhost:7013/transactions
+Nuxt /users         -> http://localhost:7014/users
+```
 
 Bukan target project ini:
 
@@ -50,6 +74,7 @@ Bukan target project ini:
 - outbox pattern
 - banyak database per service sejak awal
 - shared auth service custom buatan sendiri
+- user management langsung dari browser ke Keycloak Admin API
 
 ---
 
@@ -62,6 +87,7 @@ flowchart LR
     K[Keycloak]
     P[Product API\nBun + Elysia]
     T[Transaction API\nGo]
+    A[User Management API\nTahap 11]
     DB[(PostgreSQL)]
 
     U --> F
@@ -69,6 +95,8 @@ flowchart LR
     K -->|Access Token| F
     F -->|Bearer Token| P
     F -->|Bearer Token| T
+    F -->|Bearer Token admin| A
+    A -->|Keycloak Admin API| K
     P --> DB
     T --> DB
 ```
@@ -79,8 +107,10 @@ Cara baca diagram:
 - Login dilakukan ke **Keycloak**.
 - Setelah login, frontend mendapat **access token**.
 - Frontend mengirim token ke **Product API** dan **Transaction API**.
-- Kedua backend membaca `sub` dari token sebagai `user_id`.
-- Kedua backend menyimpan data ke **PostgreSQL**.
+- Product API dan Transaction API membaca `sub` dari token sebagai `user_id`.
+- Product API dan Transaction API menyimpan data ke **PostgreSQL**.
+- Mulai Tahap 11, frontend juga dapat memanggil **User Management API** untuk fitur `/users`.
+- User Management API memvalidasi token admin, lalu memanggil **Keycloak Admin API** dari server-side.
 
 ---
 
@@ -96,6 +126,7 @@ Tanggung jawab frontend:
 - menyimpan token secara sederhana untuk local development
 - memanggil Product API
 - memanggil Transaction API
+- memanggil User Management API untuk menu admin `/users` mulai Tahap 11
 - menampilkan response
 
 Frontend **tidak boleh**:
@@ -104,6 +135,8 @@ Frontend **tidak boleh**:
 - memuat business logic berat
 - mengelola auth flow custom sendiri di luar OIDC dasar
 - langsung akses database
+- langsung memanggil Keycloak Admin API
+- menyimpan credential admin Keycloak
 
 ### 4.2 Keycloak
 
@@ -112,6 +145,8 @@ Tanggung jawab Keycloak:
 - autentikasi user
 - mengeluarkan access token
 - menyediakan claim `sub`
+- menyimpan data user sebagai identity store
+- menyediakan role sederhana seperti `app_admin` untuk Tahap 11
 
 Keycloak **tidak boleh** dipakai sebagai:
 
@@ -159,8 +194,32 @@ Tanggung jawab PostgreSQL:
 - menyimpan data aplikasi
 - tabel `products`
 - tabel `transactions`
+- tabel tambahan aplikasi jika benar-benar dibutuhkan pada tahap berikutnya, misalnya `user_profiles`
 
 PostgreSQL di project ini dipakai sebagai **database aplikasi**, bukan sebagai pengganti identity store Keycloak.
+
+### 4.6 User Management API
+
+Tanggung jawab User Management API:
+
+- menyediakan endpoint admin user management mulai Tahap 11
+- berjalan sebagai service terpisah di `apps/user-api/`
+- memakai **Bun + Elysia** agar konsisten dengan Product API
+- memakai port local development sendiri, yaitu `7014`
+- membaca bearer token dari frontend
+- memvalidasi bahwa user punya role `app_admin`
+- mengambil admin access token Keycloak dari credential server-side
+- memanggil Keycloak Admin API untuk list, create, dan update user
+- menyembunyikan credential admin Keycloak dari browser
+
+User Management API **tidak boleh**:
+
+- menggantikan Keycloak sebagai identity provider
+- menangani login user
+- menyimpan password user di PostgreSQL aplikasi
+- mencampur logic product atau transaksi
+- menjadi API Gateway untuk semua service
+- membuat role matrix kompleks pada tahap awal
 
 ---
 
@@ -172,7 +231,9 @@ Aturan wajib:
 
 - Frontend memanggil backend via **HTTP JSON**.
 - Auth antar frontend dan backend memakai **Bearer access token** dari Keycloak.
-- Kedua backend membaca `sub` dari token sebagai `user_id`.
+- Product API dan Transaction API membaca `sub` dari token sebagai `user_id`.
+- User Management API membaca token yang sama, tetapi endpoint admin wajib cek role `app_admin`.
+- User Management API memanggil Keycloak Admin API memakai credential server-side, bukan credential dari frontend.
 - Response API harus sederhana dan konsisten.
 
 Aturan yang sengaja disederhanakan:
@@ -181,6 +242,7 @@ Aturan yang sengaja disederhanakan:
 - Tidak perlu komunikasi async antar service.
 - Tidak perlu event bus.
 - Tidak perlu internal service auth yang rumit.
+- Tidak perlu frontend memanggil Keycloak Admin API langsung.
 
 ### 5.2 Aturan database
 
@@ -195,15 +257,25 @@ Yang penting:
 - tanggung jawab logis tetap jelas
 - product data dikelola Product API
 - transaction data dikelola Transaction API
+- user identity tetap dikelola Keycloak
+- data profile lokal seperti `user_profiles` hanya boleh menjadi cache/display aplikasi, bukan sumber utama identity
 
 ### 5.3 Aturan auth
 
-Kedua backend wajib:
+Product API dan Transaction API wajib:
 
 - membaca header `Authorization: Bearer <token>`
 - mengambil claim `sub`
 - menjadikan `sub` sebagai `user_id`
 - menaruh `user_id` itu ke `created_by`
+
+User Management API wajib:
+
+- membaca header `Authorization: Bearer <token>`
+- memvalidasi token
+- memastikan token punya role `app_admin`
+- mengembalikan `401` jika token tidak ada atau tidak valid
+- mengembalikan `403` jika token valid tetapi bukan admin
 
 Untuk tahap belajar, validasi token boleh dibuat **cukup sederhana** selama flow lokal jelas dan dapat diuji.
 
@@ -246,6 +318,14 @@ Gunakan bentuk response yang konsisten.
 }
 ```
 
+### Forbidden
+
+```json
+{
+  "message": "forbidden"
+}
+```
+
 ### Internal server error
 
 ```json
@@ -271,6 +351,7 @@ Tujuannya bukan agar paling sempurna, tetapi agar:
 - `GET /profile`
 - `GET /products`
 - `GET /transactions`
+- `GET /users` mulai Tahap 11
 
 ### Product API
 
@@ -283,6 +364,19 @@ Tujuannya bukan agar paling sempurna, tetapi agar:
 - `GET /health`
 - `GET /transactions`
 - `POST /transactions`
+
+### User Management API
+
+- `GET /health`
+- `GET /users`
+- `POST /users`
+- `PUT /users/:id`
+
+Base URL local development:
+
+```text
+http://localhost:7014
+```
 
 Di luar daftar ini, **jangan menambah endpoint baru** kecuali memang masuk tahap berikutnya dan benar-benar dibutuhkan.
 
@@ -426,6 +520,51 @@ Jangan lakukan:
 - ubah arsitektur
 - refactor besar
 
+### Tahap 10 — Penyempurnaan web app
+
+Fokus:
+
+- tombol logout sederhana
+- select product pada halaman transaksi
+- hitung `total_price` otomatis dari product terpilih dan `qty`
+
+Jangan lakukan:
+
+- ubah endpoint backend
+- ubah database schema
+- refresh token flow kompleks
+- integrasi service-to-service yang belum perlu
+
+### Tahap 11 — User Management
+
+Fokus:
+
+- tambah service kecil `apps/user-api/`
+- gunakan **Bun + Elysia**
+- jalankan di port `7014`
+- endpoint `GET /health`, `GET /users`, `POST /users`, `PUT /users/:id`
+- halaman Nuxt `/users`
+- validasi role `app_admin`
+- panggil Keycloak Admin API dari backend
+- simpan credential admin Keycloak hanya di env User Management API
+
+Env yang perlu disiapkan:
+
+- `USER_API_PORT=7014`
+- `USER_API_BASE_URL=http://localhost:7014`
+- `KEYCLOAK_BASE_URL`
+- `KEYCLOAK_REALM`
+- credential admin Keycloak untuk dipakai **hanya oleh User Management API**
+
+Jangan lakukan:
+
+- panggil Keycloak Admin API langsung dari Nuxt
+- simpan password user di PostgreSQL aplikasi
+- campur user management ke Product API atau Transaction API
+- buat auth service custom
+- buat role matrix kompleks
+- tambah API Gateway, queue, atau service discovery
+
 ---
 
 ## 9. Checklist keputusan arsitektur
@@ -447,13 +586,17 @@ Kalau jawaban mayoritas **tidak**, berarti **jangan ditambahkan dulu**.
 
 Jangan lakukan hal-hal berikut pada project ini:
 
-- membuat API Gateway padahal backend masih 2 service sederhana
+- membuat API Gateway padahal backend bisnis dan admin masih sederhana
 - membuat shared internal SDK terlalu cepat
 - memisahkan database per service tanpa alasan kuat
 - menambahkan queue/event bus tanpa use case nyata
 - membuat auth service custom padahal sudah ada Keycloak
 - memindahkan business logic ke frontend
 - mencampur logic product dan transaksi dalam satu endpoint besar
+- mencampur user management ke Product API atau Transaction API
+- memanggil Keycloak Admin API langsung dari frontend
+- menyimpan credential admin Keycloak di Nuxt
+- menyimpan password user di database aplikasi
 - membuat lapisan `controller -> usecase -> service -> repository -> adapter -> facade` jika isinya masih sangat tipis
 
 Tujuan project ini adalah **jelas dan berjalan**, bukan **terlihat enterprise**.
@@ -469,7 +612,8 @@ Contoh acuan sederhana:
 ├── apps/
 │   ├── web/                 # Nuxt 3
 │   ├── product-api/         # Bun + Elysia
-│   └── transaction-api/     # Go
+│   ├── transaction-api/     # Go
+│   └── user-api/            # User Management API mulai Tahap 11
 ├── infra/
 │   ├── docker/
 │   └── keycloak/
@@ -498,12 +642,19 @@ Tempat logic master data product.
 ### Transaction API
 Tempat logic transaksi.
 
+### User Management API
+Tempat logic admin user management yang memanggil Keycloak Admin API dari backend.
+
 ### PostgreSQL
 Tempat simpan data aplikasi.
 
 Kalau masih bingung, pegang rumus ini:
 
 > **Login ke Keycloak, data bisnis ke backend, simpan data ke PostgreSQL.**
+
+Untuk Tahap 11, tambahkan rumus ini:
+
+> **Kelola user lewat User Management API, tetapi identity user tetap milik Keycloak.**
 
 ---
 
@@ -534,6 +685,24 @@ sequenceDiagram
     T-->>F: JSON response
 ```
 
+Flow tambahan Tahap 11 untuk user management:
+
+```mermaid
+sequenceDiagram
+    actor A as Admin User
+    participant F as Nuxt Frontend
+    participant U as User Management API
+    participant K as Keycloak
+
+    A->>F: Buka /users
+    F->>U: GET/POST/PUT /users + Bearer token
+    U->>U: Validasi token dan role app_admin
+    U->>K: Ambil admin token server-side
+    U->>K: Panggil Keycloak Admin API
+    K-->>U: Result user management
+    U-->>F: JSON response
+```
+
 ---
 
 ## 14. Aturan perubahan dokumen ini
@@ -554,13 +723,14 @@ Kalau tidak, maka aturan default tetap:
 
 ## 15. Ringkasan singkat
 
-Pegang 5 hal ini:
+Pegang 6 hal ini:
 
 1. **Frontend hanya untuk UI + panggil API**
 2. **Keycloak hanya untuk login + token**
 3. **Product API hanya untuk product**
 4. **Transaction API hanya untuk transaksi**
-5. **PostgreSQL hanya untuk data aplikasi**
+5. **User Management API hanya untuk admin user management**
+6. **PostgreSQL hanya untuk data aplikasi**
 
 Dan pegang 1 aturan besar ini:
 

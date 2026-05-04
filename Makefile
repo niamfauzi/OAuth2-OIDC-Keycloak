@@ -5,7 +5,7 @@ SHELL := /bin/bash
 POSTGRES_USER ?= app_user
 POSTGRES_DB ?= app_db
 
-.PHONY: help copy-env infra-up infra-down migrate db-shell run-product run-transaction run-web install-product install-web
+.PHONY: help copy-env infra-up infra-down migrate db-shell run-product run-transaction run-web run-user install-product install-web install-user
 
 help:
 	@echo "Available commands:"
@@ -15,9 +15,11 @@ help:
 	@echo "  make migrate          - apply SQL migration to postgres"
 	@echo "  make db-shell         - open psql shell to local postgres"
 	@echo "  make install-product  - install product-api dependencies"
+	@echo "  make install-user     - install user-api dependencies"
 	@echo "  make install-web      - install web dependencies"
 	@echo "  make run-product      - run Product API"
 	@echo "  make run-transaction  - run Transaction API"
+	@echo "  make run-user         - run User Management API"
 	@echo "  make run-web          - run Nuxt web app"
 
 copy-env:
@@ -38,6 +40,9 @@ db-shell:
 install-product:
 	cd apps/product-api && bun install
 
+install-user:
+	cd apps/user-api && bun install
+
 install-web:
 	cd apps/web && npm install
 
@@ -46,6 +51,9 @@ run-product:
 
 run-transaction:
 	cd apps/transaction-api && GOCACHE=/tmp/go-build-cache go run .
+
+run-user:
+	cd apps/user-api && bun run dev
 
 run-web:
 	cd apps/web && npm run dev

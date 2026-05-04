@@ -1,6 +1,9 @@
 type JwtPayload = {
   sub?: string
   preferred_username?: string
+  realm_access?: {
+    roles?: string[]
+  }
 }
 
 function decodeBase64Url(value: string) {
@@ -27,7 +30,8 @@ export function decodeJwt(token: string): JwtPayload | null {
 
     return {
       sub: payload.sub,
-      preferred_username: payload.preferred_username
+      preferred_username: payload.preferred_username,
+      realm_access: payload.realm_access
     }
   } catch {
     return null
