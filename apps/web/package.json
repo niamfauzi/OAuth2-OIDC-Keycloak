@@ -1,0 +1,14 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "nuxt": "^3.12.4"
+  }
+}

@@ -1,0 +1,39 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+apps/**/node_modules/
+
+# Nuxt / frontend build output
+.nuxt/
+.output/
+apps/web/.nuxt/
+apps/web/.output/
+apps/web/dist/
+
+# Bun / package manager cache
+.bun/
+
+# Go build output
+apps/transaction-api/transaction-api
+*.test
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.codex
+
+# Prompt history is tracked as GitHub issues instead.
+docs/prompt/

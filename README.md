@@ -1,0 +1,122 @@
+# OAuth2-OIDC-Keycloak
+
+Project ini adalah project belajar OAuth2/OIDC yang sengaja dibuat sederhana agar mudah dipahami junior. Stack utamanya:
+
+- `apps/web`: Nuxt 3
+- `apps/product-api`: Bun + Elysia
+- `apps/transaction-api`: Go
+- `keycloak`: OIDC provider lokal
+- `postgres`: database aplikasi
+
+## Struktur Folder
+
+```text
+.
+├── apps/
+│   ├── web/
+│   ├── product-api/
+│   └── transaction-api/
+├── infra/
+│   ├── docker/
+│   └── keycloak/
+├── migrations/
+├── docs/
+│   ├── SIMPLE_ARCHITECTURE_GUIDE.md
+│   └── prompt/
+├── .env.example
+├── Makefile
+├── docker-compose.yml
+└── README.md
+```
+
+## Menjalankan Service Dasar
+
+1. Salin `.env.example` menjadi `.env`.
+2. Jalankan `docker compose up -d postgres keycloak`.
+3. Buka Keycloak di `http://localhost:7070`.
+
+## Service dan Port
+
+| Service | Peran | Port |
+| --- | --- | --- |
+| `web` | Nuxt frontend placeholder | `7011` |
+| `product-api` | API product placeholder | `7012` |
+| `transaction-api` | API transaction placeholder | `7013` |
+| `keycloak` | OIDC provider lokal | `7070` |
+| `postgres` | Database aplikasi | `5432` |
+
+## Endpoint Target
+
+| Service | Method | Path |
+| --- | --- | --- |
+| `web` | `GET` | `/login` |
+| `web` | `GET` | `/auth/callback` |
+| `web` | `GET` | `/profile` |
+| `web` | `GET` | `/products` |
+| `web` | `GET` | `/transactions` |
+| `product-api` | `GET` | `/health` |
+| `product-api` | `GET` | `/products` |
+| `product-api` | `POST` | `/products` |
+| `transaction-api` | `GET` | `/health` |
+| `transaction-api` | `GET` | `/transactions` |
+| `transaction-api` | `POST` | `/transactions` |
+
+## Daily Use
+
+Prasyarat lokal:
+
+- Docker + Docker Compose
+- Bun
+- Go
+- Node.js + npm
+
+Flow harian paling sederhana:
+
+1. Buat file env:
+
+```bash
+cp .env.example .env
+```
+
+2. Nyalakan infra:
+
+```bash
+make infra-up
+```
+
+3. Apply migration:
+
+```bash
+make migrate
+```
+
+4. Jalankan service yang dibutuhkan, masing-masing di terminal terpisah:
+
+```bash
+make run-product
+make run-transaction
+make run-web
+```
+
+Command yang paling sering dipakai:
+
+- `make help`: lihat daftar command
+- `make infra-up`: start `postgres` dan `keycloak`
+- `make infra-down`: stop infra
+- `make migrate`: apply SQL migration ke PostgreSQL
+- `make db-shell`: buka `psql` ke database lokal
+- `make run-product`: jalankan Product API
+- `make run-transaction`: jalankan Transaction API
+- `make run-web`: jalankan Nuxt app
+- `make install-product`: install dependency Product API
+- `make install-web`: install dependency Web app
+
+Contoh urutan untuk development harian:
+
+```bash
+make infra-up
+make migrate
+make run-product
+make run-transaction
+make run-web
+```
